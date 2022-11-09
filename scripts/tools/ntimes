@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+
+# Unoffical Bash "strict mode"
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+#ORIGINAL_IFS=$IFS
+IFS=$'\t\n' # Stricter IFS settings
+
+usage() {
+    cat <<EOF
+Simple Bash script to run a command multiple times. Easier than using the for
+loop syntax.
+
+Usage:
+
+ntimes [options] [command ...]
+
+Options:
+
+-n|--times [number]   The number of times to execute the command
+-f|--failure          Execute the command until it fails
+-s|--success          Execute the command until it succeeds
+-p|--parallel         Execute the command in parallel. Can only be used with
+                        the -n flag.
+-v                    Verbose output
+
+Example:
+
+$ ntimes -n 10 -- ping -c stratus3d.com
+
+Will run the ping command 10 times.
+
+Example:
+
+$ ntimes -s -- make test
+
+Will run 'make test' until it succeeds.
+EOF
+}
+
+number=''
+parallel=false
+until=''
+verbose=false
+
+error_exit() {
+  echo "Error: ""$@"
+  exit 1
+}
+
+
+get_value() {
+  raw_flag=$1
+  first=${1#*'='}
+  second=$2
+
+  # If the raw flag contains an equals sign and the value after it (first) is
+  # not null return first, otherwise return the next argument (second)
+  if [[ "$raw_flag" == *=* ]] && [ -n "$first" ]; then
+    echo "$first"
+  else
+    if [[ "$second" == -* ]]; then
+      echo "$second"
+    else
+      echo "$second"
+    fi
+  fi
+}
+
+get_shift_count() {
+  if [[ "$1" == *=* ]]; then
+    echo "1"
+  else
+    echo "2"
+  fi
+}
+
+log_command() {
+  expression="$@"
+  if $verbose; then
+    echo "Executing '$expression'"
+  fi
+}
+
+execute_command() {
+  if [ ${#@} -eq 1 ]; then
+    # If $@ has a lenght equal to 1, it is either a string that should be
+    # evaluated as an expression, or a single command, in either case we should
+    # use eval to execute the command
+    log_command "$@" && eval "$@"
+  else
+    log_command "$@" && "$@"
+  fi
+}
+
+while :; do
+    case ${1:-} in
+        -h|-\?|--help)
+            usage
+            exit
+            ;;
+        -n|--times|--times=*)
+            number=$(get_value "$1" "${2:-}")
+            shift $(get_shift_count "$1")
+            ;;
+        -p|--parallel)
+            parallel=true
+            shift
+            ;;
+        -s|--success)
+            until=success
+            shift
+            ;;
+        -f|--failure)
+            until=failure
+            shift
+            ;;
+        -v)
+            verbose=true
+            shift
+            ;;
+        --)
+            shift
+            break 2
+            ;;
+        *)
+            if [ -z "${1:-}" ]; then
+                break 2
+            else
+                error_exit "Unknown option ${1:-}"
+            fi
+    esac
+done
+
+if [ ! -z "$number" ]; then
+  # Execute the command a set number of times
+  for i in $(seq $number); do
+    export i
+    if [ "$parallel" = true ]; then
+      # Execute child process if parallel is true
+      log_command "$@"
+      "$@" &
+    else
+      # Otherwise execute in the current process sequentially
+      execute_command "$@"
+    fi
+  done
+else
+  # Must be until success or failure
+  if [ "$until" = "success" ]; then
+    until execute_command "$@"; do
+      true
+    done
+  elif [ "$until" = "failure" ]; then
+    while execute_command "$@"; do
+      true
+    done
+  else
+    error_exit "Must be until success or failure if the number of runs is not specified"
+  fi
+fi

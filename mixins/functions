@@ -1,0 +1,69 @@
+function psgrep() {
+  ps auxf | grep -v grep | grep "$@" -i
+}
+
+function fname() {
+  find . -iname "*$@*"
+}
+
+function remove_lines_from() {
+  # Removes lines from $1 if they appear in $2
+  grep -F -x -v -f $2 $1
+}
+
+function mkcd() {
+  mkdir $1 && cd $1
+}
+
+# Read STDIN as JSON and print to STDOUT as YAML
+function json_to_yaml() {
+	ruby -ryaml -rjson -e 'puts YAML.dump(JSON.parse(STDIN.read))'
+}
+
+# Read STDIN as YAML and print to STDOUT as JSON
+function yaml_to_json() {
+	ruby -ryaml -rjson -e 'puts YAML.load(STDIN.read).to_json'
+}
+
+# Easily create a temp directory and cd into it for quick experiments
+function t {
+  cd $(mktemp -d /tmp/$1.XXXX)
+}
+
+# Asciidoc to Markdown conversion function, since pandoc can't do this natively.
+# Pipe asciidoc to this function on STDIN, and it will write the markdown to
+# STDOUT. Based on
+# https://alvinalexander.com/bookmarks/how-convert-asciidoc-to-html-or-markdown
+function asciidoc_to_markdown() {
+  asciidoc -b docbook - | pandoc -from docbook -t markdown_strict --wrap none
+}
+
+# Useful for converting my asciidoc writing to docx format for services that
+# require docx
+function asciidoc_to_doc() {
+  asciidoc -b docbook - | pandoc --from docbook --to docx
+}
+
+function asciidoc_to_kindle_note() {
+  asciidoc -b docbook - | pandoc --from docbook --to epub || \
+  # Print usage information if commands fails
+  printf '\nUsage: cat notes.adoc | asciidoc_to_kindle_note > notes.epub\n' >&2
+}
+
+# Load functions in other files
+for file in $HOME/dotfiles/scripts/functions/*; do
+    source $file;
+done
+
+# Load custom functions
+custom_functions_dir="$HOME/dotfiles/scripts/custom_functions"
+
+if [ -d "$custom_functions_dir" ]; then
+    custom_functions=($(find $custom_functions_dir -maxdepth 1 -name "*.sh"))
+
+    if [ ${#custom_functions[@]} -gt 0 ]; then
+        for file in $custom_functions*; do
+            source $file;
+        done
+    fi
+fi

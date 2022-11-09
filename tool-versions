@@ -1,0 +1,9 @@
+erlang 24.3.4.5
+elixir 1.13.4-otp-24
+lua 5.3.4
+ruby 2.7.6
+nodejs 16.14.1
+postgres 9.5.2
+rebar 3.16.1
+python 3.8.12 2.7.18
+yarn 1.16.0

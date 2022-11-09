@@ -1,0 +1,36 @@
+# Set vim with no config as the default editor
+export EDITOR='vim -u NONE'
+
+# Less for paging
+# https://seclists.org/fulldisclosure/2014/Nov/74
+export LESS='-LMR'
+export PAGER='less'
+
+#export TZ='America/New_York'
+
+# Perl options
+export PERL_MB_OPT="--install_base \"$HOME/perl5\""; export PERL_MB_OPT;
+export PERL_MM_OPT="INSTALL_BASE=$HOME/perl5"; export PERL_MM_OPT;
+
+# Custom options
+if [ -f "$HOME/dotfiles/mixins/shellrc.custom" ]; then
+    source "$HOME/dotfiles/mixins/shellrc.custom"
+fi
+
+# Erlang `erl` options
+# +pc unicode - something related to display of unicode
+# -kernel shell_history enabled - Enable shell history in the `erl` shell
+export ERL_AFLAGS="+pc unicode -kernel shell_history enabled"
+
+# Set CDPATH so we can easily navigate to directories in ~/devel and ~
+# This variable is not exported because we only want this set in the interactive
+# shell
+CDPATH=.:$HOME:$HOME/devel
+
+# k2pdfopt options
+K2PDFOPT='-wrap+ ' # Reflow text when formatting
+K2PDFOPT+='-hy -ws -0.2 ' # Not sure about these options
+K2PDFOPT+='-dev k2 ' # The device is a second generation kindle
+K2PDFOPT+='-m 0.8' # Ignore some margin
+
+export K2PDFOPT

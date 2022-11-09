@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+# Unoffical Bash "strict mode"
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+#ORIGINAL_IFS=$IFS
+IFS=$'\t\n' # Stricter IFS settings
+
+# If run in a directory with the Erlang/OTP Git repository, finds all the OTP
+# versions that have included the specified compiler version.
+#
+# Usage:
+#
+# compiler_to_erlang_version [compiler_version]
+#
+# Example:
+#
+# $ ./compiler_to_erlang_version 7.3.2
+#
+# This utility script is useful when you have a beam file and what to know what
+# version of Erlang it was compiled with. .beam files only contain the compiler
+# version, that is, the version of the compiler Erlang application that ships
+# with OTP.
+#
+# This script must be run in a directory containing a clone of the OTP
+# repository in order to find the Erlang/OTP tags to iterate over.
+#
+# Finding the compiler version used to generate a beam file is easy:
+#
+# $ erl
+# 1> beam_lib:chunks("path/to/compiled/module.beam", [compile_info]).
+#
+# The return value is a tuple, the second item is tuple containing a proplist.
+# The proplist has a key named `version` with a value that is the compiler
+# version.
+
+compiler_version=${1:-}
+
+if [ -z "$compiler_version" ]; then
+  echo "Compiler version must be specified"
+  exit 1
+fi
+
+git for-each-ref --format="%(refname)" refs/tags | while read -r tag
+do
+  vsn_mk=$(git show "$tag":lib/compiler/vsn.mk)
+  if grep "$compiler_version" <<< "$vsn_mk" > /dev/null; then
+    echo "Found version $compiler_version in tag $tag"
+  fi
+done
